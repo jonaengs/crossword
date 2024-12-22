@@ -22,3 +22,9 @@ export interface BlockedCell {
 }
 
 export type AnyCell = EmptyCellValue | CorrectedCellValue | UserInputCellValue | DraftCellValue | BlockedCell;
+
+// TODO: Convert into a class
+export interface CrossWord {
+  /** Row major */
+  cells: AnyCell[][];
+}

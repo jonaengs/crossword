@@ -1,113 +1,34 @@
-import { useEffect, useState } from 'react';
-import { AnyCell, EmptyCellValue } from '~/lib/crossword';
-import { MovementInput, translateKeyboardInput } from '~/lib/input';
-import { clamp } from '~/lib/numbers';
+import { useEffect } from 'react';
+import { CrosswordApplicationProvider, useCrosswordApplicationContext } from '~/lib/context';
+import { ControllerState, Coordinate } from '~/lib/controls';
+import { AnyCell } from '~/lib/crossword';
+import { translateKeyboardInput } from '~/lib/input';
 import { cn } from '~/lib/style';
 
-// TODO: Convert into a class
-interface CrossWord {
-  /** Row major */
-  cells: AnyCell[][];
-  dims: () => { rows: number; cols: number };
-}
-
-interface Coordinate {
-  row: number;
-  col: number;
-}
-
-type DirectionalCommand = 'next' | 'prev' | 'switch';
-type Direction = 'horizontal' | 'vertical';
-
-interface Controls {
-  direction: Direction;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-interface Cursor extends Coordinate {}
-
-interface ControllerState {
-  cursor: Cursor;
-  controls: Controls;
-}
-
-function convertDirectionalCommand(controls: Controls, command: MovementInput): DirectionalCommand {
-  if (controls.direction === 'horizontal') {
-    switch (command.value) {
-      case 'left':
-        return 'prev';
-      case 'right':
-        return 'next';
-      default:
-        return 'switch';
-    }
-  } else {
-    switch (command.value) {
-      case 'up':
-        return 'prev';
-      case 'down':
-        return 'next';
-      default:
-        return 'switch';
-    }
-  }
-}
-
-function cursorIncr(crossword: CrossWord, cursor: Cursor, controls: Controls, value: -1 | 1): Cursor {
-  // TODO: skip over blocked cells?
-  const { rows, cols } = crossword.dims();
-  if (controls.direction === 'horizontal') {
-    return {
-      row: cursor.row,
-      col: clamp(cursor.col + value, 0, cols - 1),
-    };
-  } else {
-    return {
-      row: clamp(cursor.row + value, 0, rows - 1),
-      col: cursor.col,
-    };
-  }
-}
-
-function controllerNext(crossword: CrossWord, controller: ControllerState, input: DirectionalCommand): ControllerState {
-  function toggleDirection(direction: Direction): Direction {
-    return direction === 'horizontal' ? 'vertical' : 'horizontal';
-  }
-
-  if (input === 'switch') {
-    return { ...controller, controls: { direction: toggleDirection(controller.controls.direction) } };
-  }
-  const value = input === 'next' ? 1 : -1;
-  return { ...controller, cursor: cursorIncr(crossword, controller.cursor, controller.controls, value) };
-}
-
-function initCrossword(rows: number, cols: number): CrossWord {
-  const cells: EmptyCellValue[][] = Array.from({ length: rows }, () =>
-    Array.from({ length: cols }, () => ({ type: 'empty' })),
-  );
-  return {
-    cells,
-    dims: () => ({ rows, cols }),
-  };
-}
+/**
+ * TODO:
+ * Word suggestor
+ * Add the following to cells: their number (across/down), their coordinates
+ *  - Perhaps introducing a new wrapper around the cells (ContextualizedCell<T extends AnyCell> for example)
+ */
 
 interface BaseCellProps {
   color: 'black' | 'white';
   value: string | null;
+  onClick: () => void;
   highlighted?: boolean;
   active?: boolean;
 }
 
-function BaseCell({ value, color, highlighted, active }: BaseCellProps) {
+function BaseCell({ value, color, onClick, highlighted, active }: BaseCellProps) {
   return (
     <span
-      className={cn(
-        'flex items-center justify-center',
-        'size-10 border-gray-600 border bg-white uppercase',
-        highlighted && 'bg-blue-100',
-        active && 'bg-yellow-200',
-        color === 'black' && 'bg-black',
-      )}
+      className={cn('flex items-center justify-center', 'size-24 border-gray-600 border bg-white uppercase', {
+        'bg-blue-100': highlighted,
+        'bg-yellow-200': active,
+        'bg-black': color === 'black',
+      })}
+      onClick={onClick}
       tabIndex={1}
     >
       {value}
@@ -115,35 +36,78 @@ function BaseCell({ value, color, highlighted, active }: BaseCellProps) {
   );
 }
 
-function CellController({
+function CellLogic({
   cell,
   coordinates,
   controller,
+  setActive,
 }: {
   cell: AnyCell;
   coordinates: Coordinate;
   controller: ControllerState;
+  setActive: () => void;
 }) {
+  // TODO: Make repeat cell click change controller direction
   const { type } = cell;
   const color = type === 'blocked' ? 'black' : 'white';
+  console.log({ color });
   const value = 'value' in cell ? cell.value : null;
   const isActive = controller.cursor.row === coordinates.row && controller.cursor.col === coordinates.col;
   const isHighlighted =
     controller.controls.direction === 'horizontal'
       ? controller.cursor.row === coordinates.row
       : controller.cursor.col === coordinates.col;
-  return <BaseCell color={color} value={value} highlighted={isHighlighted} active={isActive} />;
+  return <BaseCell color={color} value={value} highlighted={isHighlighted} active={isActive} onClick={setActive} />;
+}
+
+function Toolbar() {
+  /**
+   * Functionality:
+   * word search
+   */
+
+  const {
+    crossword,
+    setCell,
+    controller: { cursor },
+  } = useCrosswordApplicationContext();
+
+  const cell = crossword.cells[cursor.row]![cursor.col]!;
+  const isBlocked = cell.type === 'blocked';
+  const isClearable = cell.type !== 'empty';
+
+  function toggleBlocked() {
+    if (isBlocked) {
+      setCell({ row: cursor.row, col: cursor.col }, { type: 'empty' });
+    } else {
+      setCell({ row: cursor.row, col: cursor.col }, { type: 'blocked' });
+    }
+  }
+
+  function clear() {
+    setCell({ row: cursor.row, col: cursor.col }, { type: 'empty' });
+  }
+
+  return (
+    <div className="flex flex-row gap-2">
+      <button onClick={toggleBlocked}>{isBlocked ? 'Unblock' : 'Block'}</button>
+      <button onClick={clear} disabled={!isClearable}>
+        Clear
+      </button>
+    </div>
+  );
+}
+
+function BuilderApplication() {
+  return (
+    <CrosswordApplicationProvider>
+      <Builder />;
+    </CrosswordApplicationProvider>
+  );
 }
 
 function Builder() {
-  const [rows, cols] = [5, 5];
-  const [crossword, setCrossword] = useState(initCrossword(rows, cols));
-  const [controller, setController] = useState<ControllerState>({
-    // TODO: set cursor to first editable cell
-    cursor: { row: 0, col: 0 },
-    controls: { direction: 'horizontal' },
-  });
-
+  const { crossword, controller, handleInput, onCellClick } = useCrosswordApplicationContext();
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       const input = translateKeyboardInput(event);
@@ -151,40 +115,27 @@ function Builder() {
         return;
       }
       event.preventDefault();
-      console.log(input);
-      if (input.type === 'directional') {
-        const command = convertDirectionalCommand(controller.controls, input);
-        const newController = controllerNext(crossword, controller, command);
-        setController(newController);
-      } else if (input.type === 'value') {
-        const { row, col } = controller.cursor;
-        crossword.cells[row]![col]! = { type: 'user', value: input.value };
-        setCrossword(crossword);
-        // After a successful input, we move to the next cell
-        const newController = controllerNext(crossword, controller, 'next');
-        setController(newController);
-      } else if (input.type === 'delete') {
-        const { row, col } = controller.cursor;
-        crossword.cells[row]![col]! = { type: 'empty' };
-        setCrossword(crossword);
-        // After a successful delete, we move to the previous cell
-        const newController = controllerNext(crossword, controller, 'prev');
-        setController(newController);
-      }
+      handleInput(input);
     }
     window.addEventListener('keydown', onKeyDown);
-
     return () => {
       window.removeEventListener('keydown', onKeyDown);
     };
   });
 
   return (
-    <div className="flex items-center justify-center h-screen">
-      <div className="inline-grid grid-cols-5 auto-cols-min -translate-y-1/2">
+    <div className="flex flex-col items-center justify-center min-h-screen">
+      <Toolbar />
+      <div className="inline-grid grid-cols-5 auto-cols-min">
         {crossword.cells.flatMap((row, i) =>
           row.map((cell, j) => (
-            <CellController key={`${i}/${j}`} cell={cell} coordinates={{ row: i, col: j }} controller={controller} />
+            <CellLogic
+              key={`${i}/${j}`}
+              cell={cell}
+              coordinates={{ row: i, col: j }}
+              controller={controller}
+              setActive={() => onCellClick({ row: i, col: j })}
+            />
           )),
         )}
       </div>
@@ -192,4 +143,4 @@ function Builder() {
   );
 }
 
-export default Builder;
+export default BuilderApplication;
