@@ -42,3 +42,11 @@ export function convertDirectionalCommand(controls: Controls, command: MovementI
     }
   }
 }
+
+export function toggleDirection(direction: Direction): Direction {
+  return direction === 'horizontal' ? 'vertical' : 'horizontal';
+}
+
+export function coordsEqual(a: Coordinate, b: Coordinate): boolean {
+  return a.row === b.row && a.col === b.col;
+}

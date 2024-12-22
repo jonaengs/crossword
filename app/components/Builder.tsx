@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { CrosswordApplicationProvider, useCrosswordApplicationContext } from '~/lib/context';
-import { ControllerState, Coordinate } from '~/lib/controls';
-import { AnyCell } from '~/lib/crossword';
+import { ControllerState, Coordinate, coordsEqual, toggleDirection } from '~/lib/controls';
+import { AnnotatedHint, AnyCell } from '~/lib/crossword';
 import { translateKeyboardInput } from '~/lib/input';
 import { cn } from '~/lib/style';
 
@@ -43,13 +43,13 @@ function CellLogic({
   coordinates,
   controller,
   hintNumber,
-  setActive,
+  onClick,
 }: {
   cell: AnyCell;
   coordinates: Coordinate;
   controller: ControllerState;
   hintNumber: string | null;
-  setActive: () => void;
+  onClick: () => void;
 }) {
   // TODO: Make repeat cell click change controller direction
   const { type } = cell;
@@ -66,7 +66,7 @@ function CellLogic({
       value={value}
       highlighted={isHighlighted}
       active={isActive}
-      onClick={setActive}
+      onClick={onClick}
       hintNumber={hintNumber}
     />
   );
@@ -110,6 +110,66 @@ function Toolbar() {
   );
 }
 
+function HintsList({ direction, mayHighlight }: { direction: 'across' | 'down'; mayHighlight: boolean }) {
+  const { crossword, controller, setHint, setController } = useCrosswordApplicationContext();
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const hints = direction === 'across' ? crossword.hints.across : crossword.hints.down;
+  // If the list may highlight a hint, find the hint whose run the controller's cursor lies within
+  const hintOnCursor: AnnotatedHint | null =
+    (mayHighlight &&
+      hints.find((hint) => {
+        const isRow = hint.start.row <= controller.cursor.row && hint.end.row >= controller.cursor.row;
+        const isCol = hint.start.col <= controller.cursor.col && hint.end.col >= controller.cursor.col;
+        return isRow && isCol;
+      })) ||
+    null;
+
+  // On focusin a hint, set the controller's cursor to the startint cell of the hint's run
+  function onFocusHint(hint: AnnotatedHint) {
+    setController(hint.start, hint.direction === 'across' ? 'horizontal' : 'vertical');
+  }
+
+  function onLabelClick(idx: number) {
+    const ref = inputRefs.current[idx];
+    if (ref) {
+      ref.focus();
+    }
+  }
+
+  return (
+    <>
+      <h4 className="font-bold title">{direction}</h4>
+      <div className="flex flex-col gap-1">
+        {hints.map((hint, i) => (
+          <li
+            className={cn('flex items-start', hint === hintOnCursor && 'bg-blue-200')}
+            onFocus={() => onFocusHint(hint)}
+          >
+            <span className="mr-1 w-6 text-right cursor-pointer" onClick={() => onLabelClick(i)}>
+              {hint.index}.
+            </span>
+            <input
+              ref={(el) => {
+                inputRefs.current[i] = el;
+                return () => {
+                  inputRefs.current[i] = null;
+                };
+              }}
+              type="text"
+              key={hint.start.col}
+              value={hint.label}
+              placeholder="hint"
+              className="bg-inherit"
+              onChange={(event) => setHint(direction, i, event.target.value)}
+            />
+          </li>
+        ))}
+      </div>
+    </>
+  );
+}
+
 function BuilderApplication() {
   return (
     <CrosswordApplicationProvider>
@@ -119,7 +179,8 @@ function BuilderApplication() {
 }
 
 function Builder() {
-  const { crossword, controller, handleInput, onCellClick, setHint } = useCrosswordApplicationContext();
+  const { crossword, controller, handleInput, setController } = useCrosswordApplicationContext();
+  const controllerDirection = controller.controls.direction;
   const keyboardCaptureAreaRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const element = keyboardCaptureAreaRef.current;
@@ -147,17 +208,6 @@ function Builder() {
     return hintDown?.index.toString() || hintAcross?.index.toString() || null;
   }
 
-  const hintAcross = crossword.hints.across.find((hint) => {
-    const isRow = hint.start.row === controller.cursor.row;
-    const isCol = hint.start.col <= controller.cursor.col && hint.end.col >= controller.cursor.col;
-    return isRow && isCol;
-  });
-  const hintDown = crossword.hints.down.find((hint) => {
-    const isCol = hint.start.col === controller.cursor.col;
-    const isRow = hint.start.row <= controller.cursor.row && hint.end.row >= controller.cursor.row;
-    return isCol && isRow;
-  });
-
   return (
     <div className="flex flex-row justify-center gap-4">
       {/* Crossword */}
@@ -171,7 +221,14 @@ function Builder() {
                 cell={cell}
                 coordinates={{ row: i, col: j }}
                 controller={controller}
-                setActive={() => onCellClick({ row: i, col: j })}
+                onClick={() =>
+                  setController(
+                    { row: i, col: j },
+                    coordsEqual(controller.cursor, { row: i, col: j })
+                      ? toggleDirection(controllerDirection)
+                      : controllerDirection,
+                  )
+                }
                 hintNumber={getHintNumberForCoordinate({ row: i, col: j })}
               />
             )),
@@ -180,44 +237,8 @@ function Builder() {
       </div>
       {/* Hints */}
       <div className="flow-col gap-4 mt-6">
-        <h4 className="font-bold">Across</h4>
-        <ol className="list-decimal">
-          {crossword.hints.across.map((hint, i) => (
-            <li
-              className={cn(
-                'list-inside',
-                hint === hintAcross && controller.controls.direction === 'horizontal' && 'bg-blue-200',
-              )}
-            >
-              <input
-                type="text"
-                key={hint.start.col}
-                value={hint.label}
-                placeholder="hint"
-                onChange={(event) => setHint('across', i, event.target.value)}
-              />
-            </li>
-          ))}
-        </ol>
-        <h4 className="font-bold">Down</h4>
-        <ol className="list-decimal">
-          {crossword.hints.down.map((hint, i) => (
-            <li
-              className={cn(
-                'list-inside',
-                hint === hintDown && controller.controls.direction === 'vertical' && 'bg-blue-200',
-              )}
-            >
-              <input
-                type="text"
-                key={hint.start.col}
-                value={hint.label}
-                placeholder="hint"
-                onChange={(event) => setHint('down', i, event.target.value)}
-              />
-            </li>
-          ))}
-        </ol>
+        <HintsList direction="across" mayHighlight={controllerDirection === 'horizontal'} />
+        <HintsList direction="down" mayHighlight={controllerDirection === 'vertical'} />
       </div>
     </div>
   );

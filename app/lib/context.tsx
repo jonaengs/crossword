@@ -8,6 +8,8 @@ import {
   Direction,
   DirectionalCommand,
   convertDirectionalCommand,
+  coordsEqual,
+  toggleDirection,
 } from './controls';
 import { AnyInput } from './input';
 import { clamp } from './numbers';
@@ -19,7 +21,7 @@ interface CrosswordApplicationState {
   controller: ControllerState;
   setCell: (coords: Coordinate, value: AnyCell) => void;
   handleInput: (input: AnyInput) => void;
-  onCellClick: (coords: Coordinate) => void;
+  setController: (coords: Coordinate, direction: Direction) => void;
   setHint: (direction: 'across' | 'down', index: number, label: string) => void;
 }
 
@@ -69,10 +71,6 @@ function computeHints(cells: AnyCell[][]): BaseHints {
     across,
     down,
   };
-}
-
-function coordsEqual(a: Coordinate, b: Coordinate): boolean {
-  return a.row === b.row && a.col === b.col;
 }
 
 function mergeHints(oldHints: BaseHints, newHints: BaseHints): BaseHints {
@@ -178,10 +176,6 @@ function cursorIncr(crossword: CrossWord, cursor: Cursor, controls: Controls, va
 }
 
 function controllerNext(crossword: CrossWord, controller: ControllerState, input: DirectionalCommand): ControllerState {
-  function toggleDirection(direction: Direction): Direction {
-    return direction === 'horizontal' ? 'vertical' : 'horizontal';
-  }
-
   if (input === 'switch') {
     return { ...controller, controls: { direction: toggleDirection(controller.controls.direction) } };
   }
@@ -198,7 +192,7 @@ export function CrosswordApplicationProvider({ children }: Readonly<{ children: 
   // TODO: use localstorage as backing for crossword. Add a clear button to complete reset state
   const [rows, cols] = [5, 5];
   const [crossword, setCrossword] = useState(initCrossword(rows, cols));
-  const [controller, setController] = useState<ControllerState>({
+  const [controller, _setController] = useState<ControllerState>({
     // TODO: set cursor to first editable cell
     cursor: { row: 0, col: 0 },
     controls: { direction: 'horizontal' },
@@ -219,7 +213,7 @@ export function CrosswordApplicationProvider({ children }: Readonly<{ children: 
     if (input.type === 'directional') {
       const command = convertDirectionalCommand(controller.controls, input);
       const newController = controllerNext(crossword, controller, command);
-      setController(newController);
+      _setController(newController);
     } else if (input.type === 'value') {
       const { row, col } = controller.cursor;
       // Prevent writing to blocked cells
@@ -227,15 +221,15 @@ export function CrosswordApplicationProvider({ children }: Readonly<{ children: 
         return;
       }
       setCell({ row, col }, { type: 'user', value: input.value });
-      setController(controllerNext(crossword, controller, 'next'));
+      _setController(controllerNext(crossword, controller, 'next'));
     } else if (input.type === 'delete') {
       setCell(controller.cursor, { type: 'empty' });
-      setController(controllerNext(crossword, controller, 'prev'));
+      _setController(controllerNext(crossword, controller, 'prev'));
     }
   }
 
-  function onCellClick({ row, col }: Coordinate) {
-    setController({ ...controller, cursor: { row, col } });
+  function setController(coords: Coordinate, direction: Direction) {
+    _setController({ cursor: coords, controls: { direction } });
   }
 
   function setHint(direction: 'across' | 'down', index: number, label: string) {
@@ -264,7 +258,7 @@ export function CrosswordApplicationProvider({ children }: Readonly<{ children: 
         controller,
         setCell,
         handleInput,
-        onCellClick,
+        setController,
         setHint,
       }}
     >
