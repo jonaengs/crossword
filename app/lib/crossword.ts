@@ -1,24 +1,24 @@
-interface EmptyCellValue {
+export interface EmptyCellValue {
   type: 'empty';
 }
 
-interface CorrectedCellValue {
+export interface CorrectedCellValue {
   type: 'corrected';
   value: string;
 }
 
-interface UserInputCellValue {
+export interface UserInputCellValue {
   type: 'user';
   value: string;
 }
 
-interface DraftCellValue {
+export interface DraftCellValue {
   type: 'draft';
   value: string;
 }
 
-interface BlockedCell {
+export interface BlockedCell {
   type: 'blocked';
 }
 
-type AnyCell = EmptyCellValue | CorrectedCellValue | UserInputCellValue | DraftCellValue | BlockedCell;
+export type AnyCell = EmptyCellValue | CorrectedCellValue | UserInputCellValue | DraftCellValue | BlockedCell;

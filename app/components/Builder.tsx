@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { AnyCell, EmptyCellValue } from '~/lib/crossword';
 import { MovementInput, translateKeyboardInput } from '~/lib/input';
 import { clamp } from '~/lib/numbers';
 import { cn } from '~/lib/style';
@@ -22,6 +23,7 @@ interface Controls {
   direction: Direction;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface Cursor extends Coordinate {}
 
 interface ControllerState {

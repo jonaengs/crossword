@@ -4,7 +4,7 @@ import tsConfigPaths from 'vite-tsconfig-paths';
 export default defineConfig({
   vite: {
     plugins: [
-      // @ts-ignore
+      // @ts-expect-error apparently a pnpm bug: https://github.com/vitejs/vite/issues/13027
       tsConfigPaths({
         projects: ['./tsconfig.json'],
       }),
