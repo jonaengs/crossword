@@ -2,6 +2,8 @@ import globals from 'globals';
 import pluginJs from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import pluginReact from 'eslint-plugin-react';
+// @ts-ignore
+import pluginReactHooks from 'eslint-plugin-react-hooks';
 import eslintConfigPrettier from 'eslint-config-prettier';
 
 export default [
@@ -15,7 +17,8 @@ export default [
   ...tseslint.configs.recommended,
   {
     plugins: {
-      pluginReact,
+      react: pluginReact,
+      'react-hooks': pluginReactHooks,
     },
     languageOptions: {
       parserOptions: {
@@ -27,6 +30,7 @@ export default [
     },
     rules: {
       'react/react-in-jsx-scope': 'off',
+      'react-hooks/rules-of-hooks': 'error',
     },
   },
   eslintConfigPrettier,
