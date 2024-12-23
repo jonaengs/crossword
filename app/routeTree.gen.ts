@@ -14,6 +14,7 @@ import { Route as rootRoute } from './routes/__root'
 import { Route as NewImport } from './routes/new'
 import { Route as IndexImport } from './routes/index'
 import { Route as SolveSlugImport } from './routes/solve/$slug'
+import { Route as EditSlugImport } from './routes/edit/$slug'
 
 // Create/Update Routes
 
@@ -35,6 +36,12 @@ const SolveSlugRoute = SolveSlugImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
+const EditSlugRoute = EditSlugImport.update({
+  id: '/edit/$slug',
+  path: '/edit/$slug',
+  getParentRoute: () => rootRoute,
+} as any)
+
 // Populate the FileRoutesByPath interface
 
 declare module '@tanstack/react-router' {
@@ -53,6 +60,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NewImport
       parentRoute: typeof rootRoute
     }
+    '/edit/$slug': {
+      id: '/edit/$slug'
+      path: '/edit/$slug'
+      fullPath: '/edit/$slug'
+      preLoaderRoute: typeof EditSlugImport
+      parentRoute: typeof rootRoute
+    }
     '/solve/$slug': {
       id: '/solve/$slug'
       path: '/solve/$slug'
@@ -68,12 +82,14 @@ declare module '@tanstack/react-router' {
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/new': typeof NewRoute
+  '/edit/$slug': typeof EditSlugRoute
   '/solve/$slug': typeof SolveSlugRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/new': typeof NewRoute
+  '/edit/$slug': typeof EditSlugRoute
   '/solve/$slug': typeof SolveSlugRoute
 }
 
@@ -81,27 +97,30 @@ export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
   '/new': typeof NewRoute
+  '/edit/$slug': typeof EditSlugRoute
   '/solve/$slug': typeof SolveSlugRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/new' | '/solve/$slug'
+  fullPaths: '/' | '/new' | '/edit/$slug' | '/solve/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/new' | '/solve/$slug'
-  id: '__root__' | '/' | '/new' | '/solve/$slug'
+  to: '/' | '/new' | '/edit/$slug' | '/solve/$slug'
+  id: '__root__' | '/' | '/new' | '/edit/$slug' | '/solve/$slug'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   NewRoute: typeof NewRoute
+  EditSlugRoute: typeof EditSlugRoute
   SolveSlugRoute: typeof SolveSlugRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   NewRoute: NewRoute,
+  EditSlugRoute: EditSlugRoute,
   SolveSlugRoute: SolveSlugRoute,
 }
 
@@ -117,6 +136,7 @@ export const routeTree = rootRoute
       "children": [
         "/",
         "/new",
+        "/edit/$slug",
         "/solve/$slug"
       ]
     },
@@ -125,6 +145,9 @@ export const routeTree = rootRoute
     },
     "/new": {
       "filePath": "new.tsx"
+    },
+    "/edit/$slug": {
+      "filePath": "edit/$slug.tsx"
     },
     "/solve/$slug": {
       "filePath": "solve/$slug.tsx"

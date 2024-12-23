@@ -50,7 +50,7 @@ export interface AnnotatedHints {
 }
 
 // TODO: Convert into a class
-export interface CrossWord {
+export interface Crossword {
   /** Row major */
   cells: AnyCell[][];
   hints: AnnotatedHints;

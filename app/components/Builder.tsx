@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { CrosswordApplicationProvider, useCrosswordApplicationContext } from '~/lib/context';
+import { useCrosswordApplicationContext } from '~/lib/context';
 import { ControllerState, Coordinate, coordsEqual, toggleDirection } from '~/lib/controls';
 import { AnnotatedHint, AnyCell } from '~/lib/crossword';
 import { translateKeyboardInput } from '~/lib/input';
@@ -21,19 +21,25 @@ interface BaseCellProps {
   active?: boolean;
 }
 
+// TODO: Make text not select/highlightable
 function BaseCell({ value, color, hintNumber, onClick, highlighted, active }: BaseCellProps) {
   return (
     <div
-      className={cn('flex items-end justify-center relative', 'size-16 border-gray-600 border bg-white uppercase', {
-        'bg-blue-100': highlighted,
-        'bg-yellow-200': active,
-        'bg-black': color === 'black',
-        'bg-yellow-950': color === 'black' && active,
-      })}
+      className={cn(
+        'flex items-end justify-center relative',
+        'size-16 border-gray-600 border bg-white uppercase',
+        'cursor-default select-none',
+        {
+          'bg-blue-100': highlighted,
+          'bg-yellow-200': active,
+          'bg-black': color === 'black',
+          'bg-yellow-950': color === 'black' && active,
+        },
+      )}
       onClick={onClick}
     >
       {hintNumber && <span className="absolute top-1 left-1">{hintNumber}</span>}
-      <span className="text-2xl">{value}</span>
+      <span className="text-4xl">{value}</span>
     </div>
   );
 }
@@ -143,6 +149,7 @@ function HintsList({ direction, mayHighlight }: { direction: 'across' | 'down'; 
       <div className="flex flex-col gap-1">
         {hints.map((hint, i) => (
           <li
+            key={JSON.stringify(hint.start)}
             className={cn('flex items-start', hint === hintOnCursor && 'bg-blue-200')}
             onFocus={() => onFocusHint(hint)}
           >
@@ -170,14 +177,6 @@ function HintsList({ direction, mayHighlight }: { direction: 'across' | 'down'; 
   );
 }
 
-function BuilderApplication() {
-  return (
-    <CrosswordApplicationProvider>
-      <Builder />;
-    </CrosswordApplicationProvider>
-  );
-}
-
 function Builder() {
   const { crossword, controller, handleInput, setController } = useCrosswordApplicationContext();
   const controllerDirection = controller.controls.direction;
@@ -188,7 +187,6 @@ function Builder() {
       return;
     }
     function onKeyDown(event: KeyboardEvent) {
-      console.log({ event });
       const input = translateKeyboardInput(event);
       if (input === null) {
         return;
@@ -244,4 +242,4 @@ function Builder() {
   );
 }
 
-export default BuilderApplication;
+export default Builder;

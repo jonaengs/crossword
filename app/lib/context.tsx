@@ -1,5 +1,5 @@
 import { ReactNode, createContext, useContext, useState } from 'react';
-import { AnyCell, CrossWord, EmptyCellValue, BaseHint, AnnotatedHints, BaseHints, AnnotatedHint } from './crossword';
+import { AnyCell, Crossword, EmptyCellValue, BaseHint, AnnotatedHints, BaseHints, AnnotatedHint } from './crossword';
 import {
   ControllerState,
   Controls,
@@ -17,7 +17,7 @@ import { clamp } from './numbers';
 const MIN_RUN_LENGTH = 2;
 
 interface CrosswordApplicationState {
-  crossword: CrossWord;
+  crossword: Crossword;
   controller: ControllerState;
   setCell: (coords: Coordinate, value: AnyCell) => void;
   handleInput: (input: AnyInput) => void;
@@ -25,7 +25,7 @@ interface CrosswordApplicationState {
   setHint: (direction: 'across' | 'down', index: number, label: string) => void;
 }
 
-function dims(crossword: CrossWord): { rows: number; cols: number } {
+function dims(crossword: Crossword): { rows: number; cols: number } {
   return { rows: crossword.cells.length, cols: crossword.cells[0]?.length ?? 0 };
 }
 
@@ -131,8 +131,6 @@ function annotateHints(hints: BaseHints): AnnotatedHints {
     prevHintId = hintIdStr;
   }
 
-  console.log({ hitIdToPosition });
-
   const down: AnnotatedHint[] = hints.down.map((hint) => ({
     ...hint,
     direction: 'down',
@@ -149,7 +147,8 @@ function annotateHints(hints: BaseHints): AnnotatedHints {
   };
 }
 
-function initCrossword(rows: number, cols: number): CrossWord {
+// TODO: Move somewhere else
+export function initCrossword(rows: number, cols: number): Crossword {
   const cells: EmptyCellValue[][] = Array.from({ length: rows }, () =>
     Array.from({ length: cols }, () => ({ type: 'empty' })),
   );
@@ -159,7 +158,7 @@ function initCrossword(rows: number, cols: number): CrossWord {
   };
 }
 
-function cursorIncr(crossword: CrossWord, cursor: Cursor, controls: Controls, value: -1 | 1): Cursor {
+function cursorIncr(crossword: Crossword, cursor: Cursor, controls: Controls, value: -1 | 1): Cursor {
   // TODO: skip over blocked cells?
   const { rows, cols } = dims(crossword);
   if (controls.direction === 'horizontal') {
@@ -175,7 +174,7 @@ function cursorIncr(crossword: CrossWord, cursor: Cursor, controls: Controls, va
   }
 }
 
-function controllerNext(crossword: CrossWord, controller: ControllerState, input: DirectionalCommand): ControllerState {
+function controllerNext(crossword: Crossword, controller: ControllerState, input: DirectionalCommand): ControllerState {
   if (input === 'switch') {
     return { ...controller, controls: { direction: toggleDirection(controller.controls.direction) } };
   }
@@ -188,10 +187,12 @@ const CrosswordAppContext = createContext<CrosswordApplicationState | undefined>
 
 // TODO: Make accept crossword dimensions
 // TODO: Optioally allow highlighting blocked cells (for the builder)
-export function CrosswordApplicationProvider({ children }: Readonly<{ children: ReactNode }>) {
+export function CrosswordApplicationProvider({
+  children,
+  initialCrossword,
+}: Readonly<{ children: ReactNode; initialCrossword: Crossword }>) {
   // TODO: use localstorage as backing for crossword. Add a clear button to complete reset state
-  const [rows, cols] = [5, 5];
-  const [crossword, setCrossword] = useState(initCrossword(rows, cols));
+  const [crossword, setCrossword] = useState(initialCrossword);
   const [controller, _setController] = useState<ControllerState>({
     // TODO: set cursor to first editable cell
     cursor: { row: 0, col: 0 },
