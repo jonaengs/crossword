@@ -1,15 +1,16 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useServerFn } from '@tanstack/start';
-import Builder from '~/components/Builder';
+import Editor from '~/components/Editor';
 import { saveCrossword } from '~/functions';
-import { CrosswordApplicationProvider, initCrossword, useCrosswordApplicationContext } from '~/lib/context';
+import { CrosswordEditorApplicationProvider, useCrosswordEditorApplicationContext } from '~/state/editor';
+import { initCrossword } from '~/lib/crossword';
 
 export const Route = createFileRoute('/new')({
   component: RouteComponent,
 });
 
 function SaveForm() {
-  const { crossword } = useCrosswordApplicationContext();
+  const { crossword } = useCrosswordEditorApplicationContext();
   const postCrossword = useServerFn(saveCrossword);
   const navigate = useNavigate();
 
@@ -40,11 +41,11 @@ function RouteComponent() {
   const initialCrossword = initCrossword(5, 5);
 
   return (
-    <CrosswordApplicationProvider initialCrossword={initialCrossword}>
+    <CrosswordEditorApplicationProvider initialCrossword={initialCrossword}>
       <div className="min-h-screen flex flex-col">
-        <Builder />;
+        <Editor />;
         <SaveForm />
       </div>
-    </CrosswordApplicationProvider>
+    </CrosswordEditorApplicationProvider>
   );
 }

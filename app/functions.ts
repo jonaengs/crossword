@@ -1,10 +1,10 @@
 import { createServerFn } from '@tanstack/start';
 import { promises as fs } from 'fs';
-import { Crossword } from './lib/crossword';
+import { EditableCrossword } from './lib/crossword';
 
 interface CrosswordWithSlug {
   slug: string;
-  crossword: Crossword;
+  crossword: EditableCrossword;
 }
 
 const dataDir = process.cwd() + '/app/data';
@@ -20,7 +20,7 @@ export const getCrossword = createServerFn({ method: 'GET' })
   .validator((slug: string) => slug)
   .handler(async ({ data: slug }) => {
     const json = await fs.readFile(`${dataDir}/${slug}.json`, 'utf-8');
-    return JSON.parse(json) as Crossword;
+    return JSON.parse(json) as EditableCrossword;
   });
 
 export const listCrosswords = createServerFn({ method: 'GET' }).handler(async () => {

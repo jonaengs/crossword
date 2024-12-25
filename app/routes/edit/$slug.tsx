@@ -1,8 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useServerFn } from '@tanstack/start';
-import Builder from '~/components/Builder';
+import Editor from '~/components/Editor';
 import { getCrossword, saveCrossword } from '~/functions';
-import { CrosswordApplicationProvider, useCrosswordApplicationContext } from '~/lib/context';
+import { CrosswordEditorApplicationProvider, useCrosswordEditorApplicationContext } from '~/state/editor';
 
 export const Route = createFileRoute('/edit/$slug')({
   component: RouteComponent,
@@ -10,7 +10,7 @@ export const Route = createFileRoute('/edit/$slug')({
 });
 
 function SaveButton({ slug }: { slug: string }) {
-  const { crossword } = useCrosswordApplicationContext();
+  const { crossword } = useCrosswordEditorApplicationContext();
   const postCrossword = useServerFn(saveCrossword);
 
   return (
@@ -24,11 +24,11 @@ function RouteComponent() {
   const crossword = Route.useLoaderData();
   const slug = Route.useParams().slug;
   return (
-    <CrosswordApplicationProvider initialCrossword={crossword}>
-      <div className="min-h-screen flex flex-col">
-        <Builder />;
+    <div className="min-h-screen flex flex-col">
+      <CrosswordEditorApplicationProvider initialCrossword={crossword}>
+        <Editor />;
         <SaveButton slug={slug} />
-      </div>
-    </CrosswordApplicationProvider>
+      </CrosswordEditorApplicationProvider>
+    </div>
   );
 }

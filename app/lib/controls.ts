@@ -1,4 +1,6 @@
+import { Dimensions } from './crossword';
 import { MovementInput } from './input';
+import { clamp } from './numbers';
 
 export interface Coordinate {
   row: number;
@@ -47,6 +49,29 @@ export function toggleDirection(direction: Direction): Direction {
   return direction === 'horizontal' ? 'vertical' : 'horizontal';
 }
 
-export function coordsEqual(a: Coordinate, b: Coordinate): boolean {
-  return a.row === b.row && a.col === b.col;
+export function cursorIncr(bounds: Dimensions, cursor: Cursor, controls: Controls, value: -1 | 1): Cursor {
+  // TODO: skip over blocked cells?
+  if (controls.direction === 'horizontal') {
+    return {
+      row: cursor.row,
+      col: clamp(cursor.col + value, 0, bounds.cols - 1),
+    };
+  } else {
+    return {
+      row: clamp(cursor.row + value, 0, bounds.rows - 1),
+      col: cursor.col,
+    };
+  }
+}
+
+export function controllerNext(
+  bounds: Dimensions,
+  controller: ControllerState,
+  input: DirectionalCommand,
+): ControllerState {
+  if (input === 'switch') {
+    return { ...controller, controls: { direction: toggleDirection(controller.controls.direction) } };
+  }
+  const value = input === 'next' ? 1 : -1;
+  return { ...controller, cursor: cursorIncr(bounds, controller.cursor, controller.controls, value) };
 }
