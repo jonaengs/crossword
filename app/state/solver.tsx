@@ -1,6 +1,6 @@
 import { ReactNode, createContext, useContext, useState } from 'react';
 import { ControllerState, Coordinate, Direction, controllerNext, convertDirectionalCommand } from '../lib/controls';
-import { AnnotatedHints, BuilderCell, EditableCrossword, AnyCell, dims } from '../lib/crossword';
+import { AnnotatedHints, BuilderCell, EditableCrossword, AnyCell, dims, findFirstNonblocked } from '../lib/crossword';
 import { AnyInput } from '../lib/input';
 
 interface CrosswordSolverState {
@@ -26,12 +26,11 @@ export function CrosswordSolverApplicationProvider({
   initialCrossword: { cells: solution, hints },
 }: Readonly<{ children: ReactNode; initialCrossword: EditableCrossword }>) {
   // TODO: use localstorage as backing for crossword. Add a clear button to complete reset state
-  const crosswordDims = dims(solution);
   const [attempt, setAttempt] = useState<AttemptCells>(initAttemptCells(solution));
   const [isCompleted, setIsCompleted] = useState(false);
   const [controller, _setController] = useState<ControllerState>({
     // TODO: set cursor to first editable cell
-    cursor: { row: 0, col: 0 },
+    cursor: { row: 0, col: findFirstNonblocked(attempt, { axis: 'col', index: 0 }) ?? 0 },
     controls: { direction: 'horizontal' },
   });
 
@@ -44,7 +43,7 @@ export function CrosswordSolverApplicationProvider({
   function handleInput(input: AnyInput) {
     if (input.type === 'directional') {
       const command = convertDirectionalCommand(controller.controls, input);
-      const newController = controllerNext(crosswordDims, controller, command);
+      const newController = controllerNext(attempt, controller, command);
       const { row, col } = newController.cursor;
       if (attempt[row]![col]!.type === 'blocked') {
         return;
@@ -56,7 +55,7 @@ export function CrosswordSolverApplicationProvider({
         return;
       }
       setCell({ row, col }, { type: 'user', value: input.value });
-      const newController = controllerNext(crosswordDims, controller, 'next');
+      const newController = controllerNext(attempt, controller, 'next');
       if (attempt[newController.cursor.row]![newController.cursor.col]!.type === 'blocked') {
         return;
       }
@@ -67,7 +66,7 @@ export function CrosswordSolverApplicationProvider({
         return;
       }
       setCell(controller.cursor, { type: 'empty' });
-      _setController(controllerNext(crosswordDims, controller, 'prev'));
+      _setController(controllerNext(attempt, controller, 'prev'));
     }
   }
 
@@ -76,6 +75,7 @@ export function CrosswordSolverApplicationProvider({
   }
 
   function computeIsCompleted() {
+    const crosswordDims = dims(solution);
     for (let i = 0; i < crosswordDims.rows; i++) {
       for (let j = 0; j < crosswordDims.cols; j++) {
         const attemptCell = attempt[i]![j]!;

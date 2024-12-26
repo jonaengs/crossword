@@ -228,3 +228,13 @@ export function isCursorInHintRun(hint: AnnotatedHint, cursor: Coordinate): bool
   const isCol = hint.start.col <= cursor.col && hint.end.col >= cursor.col;
   return isRow && isCol;
 }
+
+/** Assumes index is a valid index into the cells matrix */
+export function findFirstNonblocked(
+  cells: AnyCell[][],
+  direction: { axis: 'row' | 'col'; index: number },
+): number | null {
+  const array = direction.axis === 'row' ? cells.map((row) => row[direction.index]!) : cells[direction.index]!;
+  const idx = array.findIndex((cell) => cell.type !== 'blocked');
+  return idx >= 0 ? idx : null;
+}

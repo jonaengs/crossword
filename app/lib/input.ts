@@ -3,8 +3,7 @@
  */
 
 export type DirectionalMovement = 'up' | 'down' | 'left' | 'right';
-// TODO: Revisit these string values. They are not great.
-export type MetaMovement = 'largeSkip' | 'largeSkipBack' | 'skip';
+export type MetaMovement = 'nextLine' | 'prevLine' | 'skip';
 
 export interface MovementInput {
   type: 'directional';
@@ -35,8 +34,8 @@ const arrowKeyToMovement: Record<DirectionalKey, DirectionalMovement> = {
 };
 
 const whitespaceKeyToMovement: Record<WhitespaceKey, MetaMovement> = {
-  Tab: 'largeSkip',
-  Enter: 'largeSkip',
+  Tab: 'nextLine',
+  Enter: 'nextLine',
   ' ': 'skip',
 };
 

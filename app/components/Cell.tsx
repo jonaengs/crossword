@@ -11,7 +11,6 @@ export interface BaseCellProps {
   active?: boolean;
 }
 
-// TODO: Make text not select/highlightable
 export function BaseCell({ value, color, hintNumber, onClick, highlighted, active }: BaseCellProps) {
   return (
     <div
@@ -43,7 +42,6 @@ export interface CellLogicProps {
 }
 
 export function CellLogic({ cell, coordinates, controller, hintNumber, setController }: CellLogicProps) {
-  // TODO: Make repeat cell click change controller direction
   const { type } = cell;
   const color = type === 'blocked' ? 'black' : 'white';
   const value = 'value' in cell ? cell.value : null;

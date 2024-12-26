@@ -19,7 +19,6 @@ export function CrosswordEditorApplicationProvider({
   initialCrossword,
 }: Readonly<{ children: ReactNode; initialCrossword: EditableCrossword }>) {
   // TODO: use localstorage as backing for crossword. Add a clear button to complete reset state
-  const crosswordDims = dims(initialCrossword.cells);
   const [crossword, setCrossword] = useState(initialCrossword);
   const [controller, _setController] = useState<ControllerState>({
     cursor: { row: 0, col: 0 },
@@ -27,6 +26,7 @@ export function CrosswordEditorApplicationProvider({
   });
 
   function setCell({ row, col }: Coordinate, value: BuilderCell) {
+    const crosswordDims = dims(initialCrossword.cells);
     const newCrossword = structuredClone(crossword);
     if (row < 0 || row >= crosswordDims.rows || col < 0 || col >= crosswordDims.cols) {
       console.error('Invalid cell coordinates:', row, col);
@@ -40,7 +40,7 @@ export function CrosswordEditorApplicationProvider({
   function handleInput(input: AnyInput) {
     if (input.type === 'directional') {
       const command = convertDirectionalCommand(controller.controls, input);
-      const newController = controllerNext(crosswordDims, controller, command);
+      const newController = controllerNext(crossword.cells, controller, command);
       _setController(newController);
     } else if (input.type === 'value') {
       const { row, col } = controller.cursor;
@@ -49,14 +49,14 @@ export function CrosswordEditorApplicationProvider({
         return;
       }
       setCell({ row, col }, { type: 'user', value: input.value });
-      _setController(controllerNext(crosswordDims, controller, 'next'));
+      _setController(controllerNext(crossword.cells, controller, 'next'));
     } else if (input.type === 'delete') {
       const { row, col } = controller.cursor;
       if (crossword.cells[row]![col]!.type === 'blocked') {
         return;
       }
       setCell(controller.cursor, { type: 'empty' });
-      _setController(controllerNext(crosswordDims, controller, 'prev'));
+      _setController(controllerNext(crossword.cells, controller, 'prev'));
     }
   }
 
