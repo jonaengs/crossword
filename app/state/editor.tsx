@@ -71,14 +71,14 @@ export function CrosswordEditorApplicationProvider({
         console.error(`Invalid across hint index: ${index}`);
         return;
       }
-      newCrossword.hints.across[index]!.label = label;
+      newCrossword.hints.across[index]!.text = label;
     }
     if (direction === 'down') {
       if (index < 0 || index >= newCrossword.hints.down.length) {
         console.error(`Invalid down hint index: ${index}`);
         return;
       }
-      newCrossword.hints.down[index]!.label = label;
+      newCrossword.hints.down[index]!.text = label;
     }
     setCrossword(newCrossword);
   }

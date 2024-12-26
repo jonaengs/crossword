@@ -19,16 +19,18 @@ function HintsList({ direction, mayHighlight }: { direction: 'across' | 'down'; 
           <li
             key={i}
             className={cn('flex items-start', hint === hintOnCursor && 'bg-blue-200')}
-            onClick={() => setController(hint.start, hint.direction === 'across' ? 'horizontal' : 'vertical')}
+            onClick={() => setController(hint.run.start, hint.direction === 'across' ? 'horizontal' : 'vertical')}
           >
             <span className="mr-1 w-6 text-right cursor-pointer">{hint.index}.</span>
-            <span>{hint.label}</span>
+            <span>{hint.text}</span>
           </li>
         ))}
       </div>
     </>
   );
 }
+
+// TODO: Add check + reveal functionality on a cell, run and puzzle level
 
 function Solver() {
   const { cells, hints, controller, handleInput, setController, isCompleted } = useCrosswordSolverApplicationContext();

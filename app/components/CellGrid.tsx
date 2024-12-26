@@ -1,4 +1,4 @@
-import { AnnotatedHints, AnyCell, Dimensions, getHintNumberForCoordinate } from '~/lib/crossword';
+import { AnnotatedHints, AnyCell, Dimensions, dims, getCursorRun, getHintNumberForCoordinate } from '~/lib/crossword';
 import { CellLogic } from './Cell';
 import { ControllerState, Coordinate, Direction } from '~/lib/controls';
 
@@ -11,9 +11,19 @@ interface CellGridProps {
 }
 
 function CellGrid({ cells, hints, controller, setController }: CellGridProps) {
+  const { cols } = dims(cells);
   // TODO: Make handle any dimensions
+
   return (
-    <div className="inline-grid grid-cols-5 auto-cols-min" tabIndex={1} autoFocus>
+    <div
+      tabIndex={1}
+      autoFocus
+      style={{
+        display: 'inline-grid',
+        gridTemplateColumns: `repeat(${cols}, 1fr)`,
+        gridAutoColumns: 'min-content',
+      }}
+    >
       {cells.flatMap((row, i) =>
         row.map((cell, j) => (
           <CellLogic
@@ -22,6 +32,7 @@ function CellGrid({ cells, hints, controller, setController }: CellGridProps) {
             coordinates={{ row: i, col: j }}
             controller={controller}
             setController={setController}
+            cursorRun={getCursorRun(cells, controller)}
             hintNumber={getHintNumberForCoordinate(hints, { row: i, col: j })}
           />
         )),

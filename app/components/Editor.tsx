@@ -63,7 +63,7 @@ function EditableHintsList({ direction, mayHighlight }: { direction: 'across' | 
 
   // On focusin a hint, set the controller's cursor to the startint cell of the hint's run
   function onFocusHint(hint: AnnotatedHint) {
-    setController(hint.start, hint.direction === 'across' ? 'horizontal' : 'vertical');
+    setController(hint.run.start, hint.direction === 'across' ? 'horizontal' : 'vertical');
   }
 
   function onLabelClick(idx: number) {
@@ -94,7 +94,7 @@ function EditableHintsList({ direction, mayHighlight }: { direction: 'across' | 
                 };
               }}
               type="text"
-              value={hint.label}
+              value={hint.text}
               placeholder="hint"
               className="bg-inherit"
               onChange={(event) => setHint(direction, i, event.target.value)}

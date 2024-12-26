@@ -1,5 +1,5 @@
 import { ControllerState, Coordinate, Direction, toggleDirection } from '~/lib/controls';
-import { AnyCell, coordsEqual } from '~/lib/crossword';
+import { AnyCell, Run, coordsEqual, isInRun } from '~/lib/crossword';
 import { cn } from '~/lib/style';
 
 export interface BaseCellProps {
@@ -16,13 +16,13 @@ export function BaseCell({ value, color, hintNumber, onClick, highlighted, activ
     <div
       className={cn(
         'flex items-end justify-center relative',
-        'size-16 border-gray-600 border bg-white uppercase',
+        'size-16 bg-white outline-gray-700 outline outline-1 uppercase',
         'cursor-default select-none',
         {
           'bg-blue-100': highlighted,
           'bg-yellow-200': active,
           'bg-black': color === 'black',
-          'bg-yellow-950': color === 'black' && active,
+          'bg-yellow-900': color === 'black' && active,
         },
       )}
       onClick={onClick}
@@ -38,19 +38,16 @@ export interface CellLogicProps {
   coordinates: Coordinate;
   hintNumber: string | null;
   controller: ControllerState;
+  cursorRun: Run;
   setController: (coords: Coordinate, direction: Direction) => void;
 }
 
-export function CellLogic({ cell, coordinates, controller, hintNumber, setController }: CellLogicProps) {
-  const { type } = cell;
-  const color = type === 'blocked' ? 'black' : 'white';
+export function CellLogic({ cell, coordinates, controller, hintNumber, cursorRun, setController }: CellLogicProps) {
+  const color = cell.type === 'blocked' ? 'black' : 'white';
   const value = 'value' in cell ? cell.value : null;
   const isActive = controller.cursor.row === coordinates.row && controller.cursor.col === coordinates.col;
+  const isHighlighted = isInRun(coordinates, cursorRun);
   const controllerDirection = controller.controls.direction;
-  const isHighlighted =
-    controllerDirection === 'horizontal'
-      ? controller.cursor.row === coordinates.row
-      : controller.cursor.col === coordinates.col;
   return (
     <BaseCell
       color={color}
