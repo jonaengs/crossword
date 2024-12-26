@@ -39,10 +39,11 @@ function Solver() {
 
   useOnKeyboardInput(handleInput, keyboardCaptureAreaRef);
 
-  // TODO: somehow get an oncompletion callback going. Show a modal when complete
+  // TODO: Better indication of completion (simple)
+  // TODO: somehow get an oncompletion callback going. Show a dialog when complete
   // TODO: Add a timer, stop it when completed and show it in the modal
   return (
-    <div className="flex flex-row justify-center gap-4">
+    <div className="flex flex-row justify-center gap-4 w-fit">
       {isCompleted && 'COMPLETED!'}
       <div className="flex flex-col items-center" ref={keyboardCaptureAreaRef}>
         <CellGrid

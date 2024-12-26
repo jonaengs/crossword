@@ -40,6 +40,7 @@ export function CrosswordEditorApplicationProvider({
     });
   }
 
+  // TODO: Deduplicate this logic with the solver
   function handleInput(input: AnyInput) {
     if (input.type === 'directional') {
       const command = convertDirectionalCommand(controllerState.controls, input);
@@ -47,12 +48,15 @@ export function CrosswordEditorApplicationProvider({
       setControllerState(newController);
     } else if (input.type === 'value') {
       const { row, col } = controllerState.cursor;
-      // Prevent writing to blocked cells
       if (crossword.cells[row]![col]!.type === 'blocked') {
         return;
       }
       setCell({ row, col }, { type: 'user', value: input.value });
-      setControllerState(controllerNext(crossword.cells, controllerState, 'next'));
+      const newController = controllerNext(crossword.cells, controllerState, 'next');
+      if (crossword.cells[newController.cursor.row]![newController.cursor.col]!.type === 'blocked') {
+        return;
+      }
+      setControllerState(newController);
     } else if (input.type === 'delete') {
       const { row, col } = controllerState.cursor;
       if (crossword.cells[row]![col]!.type === 'blocked') {

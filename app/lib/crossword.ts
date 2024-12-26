@@ -88,7 +88,7 @@ export function coordsEqual(a: Coordinate, b: Coordinate): boolean {
   return a.row === b.row && a.col === b.col;
 }
 
-const MIN_RUN_LENGTH = 2;
+const MIN_RUN_LENGTH = 3;
 
 export function computeHints(cells: AnyCell[][]): BaseHints {
   const across: BaseHint[] = [];

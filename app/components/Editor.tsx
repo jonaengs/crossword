@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { Coordinate } from '~/lib/controls';
 import { AnnotatedHint, AnyCell, Run, dims, getCursorRun, isCursorInHintRun } from '~/lib/crossword';
 import { fileIntoString } from '~/lib/files';
-import { useDictionaries, useDictionary } from '~/lib/hooks/useDictionary';
+import { splitLines, useDictionaries, useDictionary } from '~/lib/hooks/useDictionary';
 import useDictionarySearch from '~/lib/hooks/useDictionarySearch';
 import useOnKeyboardInput from '~/lib/hooks/useOnKeyboardInput';
 import { cn } from '~/lib/style';
@@ -75,7 +75,7 @@ function SearchPopover({
         <Popover.Content>
           {/* TODO: Fix overflow so the dictionaryselector cannot be scrolled away from */}
           <div className="bg-white shadow-md p-2 min-w-40 max-w-72 max-h-80 overflow-y-auto">
-            {dictionarySelector}
+            <div className="mb-1">{dictionarySelector}</div>
             {(() => {
               if (state === 'searching' || state === 'initial') {
                 return <div>Searching...</div>;
@@ -128,7 +128,7 @@ function DictionaryUploadDialog({
     <Dialog.Root open={isOpen} onOpenChange={setIsOpen}>
       <Dialog.Trigger asChild>{children}</Dialog.Trigger>
       <Dialog.Portal>
-        <Dialog.Overlay className="bg-black/10 fixed inset-0" />
+        <Dialog.Overlay className="bg-black/15 fixed inset-0" />
         <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white w-xl min-h-44 p-4">
           <Dialog.Title className="text-lg">Upload a dictionary</Dialog.Title>
           <Dialog.Description className="text-sm text-gray-500">
@@ -167,6 +167,7 @@ function Toolbar() {
 
   const cell = crossword.cells[cursor.row]![cursor.col]!;
   const isBlocked = cell.type === 'blocked';
+  const currentCursorRun = getCursorRun(crossword.cells, controller);
 
   function toggleBlocked() {
     if (isBlocked) {
@@ -177,16 +178,14 @@ function Toolbar() {
   }
 
   function clear() {
-    const cursorRun = getCursorRun(crossword.cells, controller);
-    const cells = getRunCells(crossword.cells, cursorRun);
+    const cells = getRunCells(crossword.cells, currentCursorRun);
     for (let i = 0; i < cells.length; i++) {
       setCell(cells[i]!.coordinates, { type: 'empty' });
     }
   }
 
-  function constructRegex(): RegExp {
-    const cursorRun = getCursorRun(crossword.cells, controller);
-    const cells = getRunCells(crossword.cells, cursorRun);
+  function constructFilter(): RegExp {
+    const cells = getRunCells(crossword.cells, currentCursorRun);
     const regex = cells
       .map(({ inner: cell }) => {
         // We cannot construct a regex for runs containing blocked cells
@@ -208,17 +207,21 @@ function Toolbar() {
   async function findWords() {
     // Force function onto event loop to allow for UI updates before the expensive lookup
     await new Promise((resolve) => setTimeout(resolve, 0));
-    if (dictionary === null) {
+    if (dictionary === undefined) {
       return [];
     }
-    const regex = constructRegex();
-    const words = dictionary?.words.filter((word) => regex.test(word)) ?? [];
+    const runLength =
+      Math.max(
+        currentCursorRun.end.row - currentCursorRun.start.row,
+        currentCursorRun.end.col - currentCursorRun.start.col,
+      ) + 1;
+    const regex = constructFilter();
+    const words = dictionary.ngrams[runLength]?.filter((word) => regex.test(word)) ?? [];
     return words;
   }
 
   function applyWord(word: string) {
-    const cursorRun = getCursorRun(crossword.cells, controller);
-    const cells = getRunCells(crossword.cells, cursorRun);
+    const cells = getRunCells(crossword.cells, currentCursorRun);
     if (cells.length !== word.length) {
       // Should not be possible, so we don't have any additional handling for this
       console.error('Word length does not match run length');
@@ -248,7 +251,7 @@ function Toolbar() {
         <DictionaryUploadDialog
           onComplete={async (file: File, name: string) => {
             const fileData = await fileIntoString(file);
-            const words = fileData.split(/\r?\n/);
+            const words = splitLines(fileData);
             const newDict = { name, words };
             console.log(newDict);
             addDictionary(newDict);
@@ -261,13 +264,12 @@ function Toolbar() {
     );
   }
 
-  // TODO: Fix no reloading of search results when changing dictionary / popover closing when using key to force refresh
   return (
-    <div className="flex flex-row gap-2">
+    <div className="flex flex-row gap-2 my-1">
       <button onClick={toggleBlocked}>{isBlocked ? 'Unblock' : 'Block'}</button>
       <button onClick={clear}>Clear</button>
       <SearchPopover search={findWords} onSelect={applyWord} dictionarySelector={<DictionarySelector />}>
-        <button>Fill</button>
+        <button>Find</button>
       </SearchPopover>
     </div>
   );

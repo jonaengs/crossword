@@ -43,6 +43,7 @@ function RouteComponent() {
   // TODO: Allow user to specify dimensions
   const [dimensions, setDimensions] = useState<Dimensions | null>(null);
 
+  // TODO: Extract into its own component
   if (dimensions === null) {
     return (
       <div className="min-h-screen flex flex-col items-center">
