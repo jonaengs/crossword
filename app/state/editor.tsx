@@ -20,74 +20,79 @@ export function CrosswordEditorApplicationProvider({
 }: Readonly<{ children: ReactNode; initialCrossword: EditableCrossword }>) {
   // TODO: use localstorage as backing for crossword. Add a clear button to complete reset state
   const [crossword, setCrossword] = useState(initialCrossword);
-  const [controller, _setController] = useState<ControllerState>({
+  const [controllerState, setControllerState] = useState<ControllerState>({
     cursor: { row: 0, col: 0 },
     controls: { direction: 'horizontal' },
   });
 
   function setCell({ row, col }: Coordinate, value: BuilderCell) {
     const crosswordDims = dims(initialCrossword.cells);
-    const newCrossword = structuredClone(crossword);
     if (row < 0 || row >= crosswordDims.rows || col < 0 || col >= crosswordDims.cols) {
       console.error('Invalid cell coordinates:', row, col);
       return;
     }
-    newCrossword.cells[row]![col]! = value;
-    newCrossword.hints = annotateHints(mergeHints(crossword.hints, computeHints(newCrossword.cells)));
-    setCrossword(newCrossword);
+
+    setCrossword((crossword) => {
+      const newCrossword = structuredClone(crossword);
+      newCrossword.cells[row]![col]! = value;
+      newCrossword.hints = annotateHints(mergeHints(newCrossword.hints, computeHints(newCrossword.cells)));
+      return newCrossword;
+    });
   }
 
   function handleInput(input: AnyInput) {
     if (input.type === 'directional') {
-      const command = convertDirectionalCommand(controller.controls, input);
-      const newController = controllerNext(crossword.cells, controller, command);
-      _setController(newController);
+      const command = convertDirectionalCommand(controllerState.controls, input);
+      const newController = controllerNext(crossword.cells, controllerState, command);
+      setControllerState(newController);
     } else if (input.type === 'value') {
-      const { row, col } = controller.cursor;
+      const { row, col } = controllerState.cursor;
       // Prevent writing to blocked cells
       if (crossword.cells[row]![col]!.type === 'blocked') {
         return;
       }
       setCell({ row, col }, { type: 'user', value: input.value });
-      _setController(controllerNext(crossword.cells, controller, 'next'));
+      setControllerState(controllerNext(crossword.cells, controllerState, 'next'));
     } else if (input.type === 'delete') {
-      const { row, col } = controller.cursor;
+      const { row, col } = controllerState.cursor;
       if (crossword.cells[row]![col]!.type === 'blocked') {
         return;
       }
-      setCell(controller.cursor, { type: 'empty' });
-      _setController(controllerNext(crossword.cells, controller, 'prev'));
+      setCell(controllerState.cursor, { type: 'empty' });
+      setControllerState(controllerNext(crossword.cells, controllerState, 'prev'));
     }
   }
 
   function setController(coords: Coordinate, direction: Direction) {
-    _setController({ cursor: coords, controls: { direction } });
+    setControllerState({ cursor: coords, controls: { direction } });
   }
 
-  function setHint(direction: 'across' | 'down', index: number, label: string) {
+  function setHint(direction: 'across' | 'down', index: number, text: string) {
     const newCrossword = structuredClone(crossword);
     if (direction === 'across') {
       if (index < 0 || index >= newCrossword.hints.across.length) {
         console.error(`Invalid across hint index: ${index}`);
         return;
       }
-      newCrossword.hints.across[index]!.text = label;
     }
     if (direction === 'down') {
       if (index < 0 || index >= newCrossword.hints.down.length) {
         console.error(`Invalid down hint index: ${index}`);
         return;
       }
-      newCrossword.hints.down[index]!.text = label;
     }
-    setCrossword(newCrossword);
+    setCrossword((crossword) => {
+      const newCrossword = structuredClone(crossword);
+      newCrossword.hints[direction][index]!.text = text;
+      return newCrossword;
+    });
   }
 
   return (
     <CrosswordEditorApplicationContext.Provider
       value={{
         crossword,
-        controller,
+        controller: controllerState,
         setCell,
         handleInput,
         setController,

@@ -244,6 +244,7 @@ export function findFirstNonblocked(
 /**
  * Returns the run that the cursor is currently in.
  * If the cursor is currently inside a blocked cell, the run becomes the entire col/row.
+ * TODO: Consider making this last part controllable with an optional parameter
  */
 export function getCursorRun(cells: AnyCell[][], controller: ControllerState): Run {
   function findRun(array: AnyCell[], initialIndex: number) {

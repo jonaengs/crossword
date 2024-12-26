@@ -30,7 +30,7 @@ function SaveForm() {
         }}
       >
         <label htmlFor="slug">Name: </label>
-        <input type="text" name="slug" />
+        <input type="text" name="slug" required />
         <button type="submit">Save</button>
       </form>
     </div>
@@ -58,9 +58,9 @@ function RouteComponent() {
           className="grid grid-cols-2 w-40"
         >
           <label htmlFor="rows">Rows</label>
-          <input type="number" name="rows" min="1" defaultValue="5" />
+          <input type="number" name="rows" min="1" defaultValue="5" required />
           <label htmlFor="cols">Columns</label>
-          <input type="number" name="cols" min="1" defaultValue="5" />
+          <input type="number" name="cols" min="1" defaultValue="5" required />
           <button type="submit">Create</button>
         </form>
       </div>

@@ -12,8 +12,6 @@ interface CellGridProps {
 
 function CellGrid({ cells, hints, controller, setController }: CellGridProps) {
   const { cols } = dims(cells);
-  // TODO: Make handle any dimensions
-
   return (
     <div
       tabIndex={1}
@@ -22,6 +20,7 @@ function CellGrid({ cells, hints, controller, setController }: CellGridProps) {
         display: 'inline-grid',
         gridTemplateColumns: `repeat(${cols}, 1fr)`,
         gridAutoColumns: 'min-content',
+        border: '2px solid black',
       }}
     >
       {cells.flatMap((row, i) =>

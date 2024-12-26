@@ -1,18 +1,157 @@
-import { useRef } from 'react';
-import { AnnotatedHint, dims, isCursorInHintRun } from '~/lib/crossword';
+import * as Dialog from '@radix-ui/react-dialog';
+import * as Popover from '@radix-ui/react-popover';
+import { useRef, useState } from 'react';
+import { Coordinate } from '~/lib/controls';
+import { AnnotatedHint, AnyCell, Run, dims, getCursorRun, isCursorInHintRun } from '~/lib/crossword';
+import { fileIntoString } from '~/lib/files';
+import { useDictionaries, useDictionary } from '~/lib/hooks/useDictionary';
+import useDictionarySearch from '~/lib/hooks/useDictionarySearch';
 import useOnKeyboardInput from '~/lib/hooks/useOnKeyboardInput';
 import { cn } from '~/lib/style';
 import { useCrosswordEditorApplicationContext } from '~/state/editor';
 import CellGrid from './CellGrid';
 
 // TODO: Move Editor and Solver files somewhere else as they are not reusable without being wrapped in the correct context provider
+// TODO: Ctrl-z, Ctrl-y/Ctrl-Shift-z for undo/redo
 
-/**
- * TODO:
- * Word suggestor
- * Add the following to cells: their number (across/down), their coordinates
- *  - Perhaps introducing a new wrapper around the cells (ContextualizedCell<T extends AnyCell> for example)
- */
+interface AnnotatedCell {
+  inner: AnyCell;
+  coordinates: Coordinate;
+}
+
+function getRunCells(cells: AnyCell[][], run: Run): AnnotatedCell[] {
+  const cellsInRun: AnnotatedCell[] = [];
+  for (let i = run.start.row; i <= run.end.row; i++) {
+    for (let j = run.start.col; j <= run.end.col; j++) {
+      cellsInRun.push({
+        inner: cells[i]![j]!,
+        coordinates: { row: i, col: j },
+      });
+    }
+  }
+  return cellsInRun;
+}
+
+function SearchResult({ words, onSelect }: { words: string[]; onSelect: (word: string) => void }) {
+  return (
+    <ul className="flex flex-col gap-1">
+      {words?.map((word) => (
+        <li key={word} onClick={() => onSelect(word)} className="cursor-pointer hover:bg-gray-100">
+          {word}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** For now, assumes that children is 'asChildable' */
+function SearchPopover({
+  children,
+  dictionarySelector,
+  search,
+  onSelect,
+}: {
+  children: React.ReactNode;
+  dictionarySelector: React.ReactNode;
+  search: () => Promise<string[]>;
+  onSelect: (word: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const { words, state } = useDictionarySearch({
+    search,
+    enabled: isOpen,
+    keys: [dictionarySelector],
+  });
+
+  const wrappedOnSelect = (word: string) => {
+    onSelect(word);
+    setIsOpen(false);
+  };
+
+  return (
+    <Popover.Root onOpenChange={setIsOpen} open={isOpen}>
+      <Popover.Trigger asChild>{children}</Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content>
+          {/* TODO: Fix overflow so the dictionaryselector cannot be scrolled away from */}
+          <div className="bg-white shadow-md p-2 min-w-40 max-w-72 max-h-80 overflow-y-auto">
+            {dictionarySelector}
+            {(() => {
+              if (state === 'searching' || state === 'initial') {
+                return <div>Searching...</div>;
+              }
+              if (state === 'error') {
+                return (
+                  <div className="text-sm text-gray-700">
+                    Selection cannot be searched over.
+                    <br /> Select another area and try again.
+                  </div>
+                );
+              }
+              if (words.length === 0) {
+                return <div className="text-sm text-gray-700">Found 0 results.</div>;
+              }
+              return <SearchResult words={words} onSelect={wrappedOnSelect} />;
+            })()}
+          </div>
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+}
+
+/** Assumes the children is asChildable */
+function DictionaryUploadDialog({
+  children,
+  onComplete,
+}: {
+  children: React.ReactNode;
+  onComplete: (file: File, name: string) => Promise<void>;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsSubmitting(true);
+    const form = event.currentTarget;
+    const fileInput = form.elements.namedItem('file') as HTMLInputElement;
+    const nameInput = form.elements.namedItem('name') as HTMLInputElement;
+    const file = fileInput.files![0]!;
+    const name = nameInput.value;
+    await onComplete(file, name);
+    setIsSubmitting(false);
+    setIsOpen(false);
+  }
+
+  return (
+    <Dialog.Root open={isOpen} onOpenChange={setIsOpen}>
+      <Dialog.Trigger asChild>{children}</Dialog.Trigger>
+      <Dialog.Portal>
+        <Dialog.Overlay className="bg-black/10 fixed inset-0" />
+        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white w-xl min-h-44 p-4">
+          <Dialog.Title className="text-lg">Upload a dictionary</Dialog.Title>
+          <Dialog.Description className="text-sm text-gray-500">
+            A dictionary file is expected to be a text file (.txt extension) containing words separate by newlines
+          </Dialog.Description>
+          <form className="flex flex-col" onSubmit={onSubmit}>
+            <label htmlFor="file">
+              File: <input type="file" accept=".txt" name="file" required />
+            </label>
+
+            <label htmlFor="name">
+              Name: <input type="text" name="name" required />
+            </label>
+
+            <button type="submit" disabled={isSubmitting}>
+              Add
+            </button>
+          </form>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
 
 function Toolbar() {
   /**
@@ -20,15 +159,14 @@ function Toolbar() {
    * word search
    */
 
-  const {
-    crossword,
-    setCell,
-    controller: { cursor },
-  } = useCrosswordEditorApplicationContext();
+  const { crossword, setCell, controller } = useCrosswordEditorApplicationContext();
+  const { cursor } = controller;
+  const { dictionaries, addDictionary } = useDictionaries();
+  const [selectedDictionary, setSelectedDictionary] = useState<string>(dictionaries.at(0)!.name);
+  const dictionary = useDictionary(selectedDictionary);
 
   const cell = crossword.cells[cursor.row]![cursor.col]!;
   const isBlocked = cell.type === 'blocked';
-  const isClearable = cell.type !== 'empty';
 
   function toggleBlocked() {
     if (isBlocked) {
@@ -39,15 +177,98 @@ function Toolbar() {
   }
 
   function clear() {
-    setCell({ row: cursor.row, col: cursor.col }, { type: 'empty' });
+    const cursorRun = getCursorRun(crossword.cells, controller);
+    const cells = getRunCells(crossword.cells, cursorRun);
+    for (let i = 0; i < cells.length; i++) {
+      setCell(cells[i]!.coordinates, { type: 'empty' });
+    }
   }
 
+  function constructRegex(): RegExp {
+    const cursorRun = getCursorRun(crossword.cells, controller);
+    const cells = getRunCells(crossword.cells, cursorRun);
+    const regex = cells
+      .map(({ inner: cell }) => {
+        // We cannot construct a regex for runs containing blocked cells
+        if (cell.type === 'blocked') {
+          throw new Error('Cannot construct regex for runs containing blocked cells');
+        }
+        if (cell.type === 'empty') {
+          return '.';
+        }
+        return cell.value;
+      })
+      .join('');
+    // Assume all words are lowercase, so no need for case-insensitive flag
+    return new RegExp(`^${regex}$`);
+  }
+
+  // TODO: Add support for finding multiple words, so for a 5-run we can suggest [['do', 'bad'], ['be', 'sad']]. Should perhaps be hidden behind a 'show more' button
+  // TODO: Add caching
+  async function findWords() {
+    // Force function onto event loop to allow for UI updates before the expensive lookup
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    if (dictionary === null) {
+      return [];
+    }
+    const regex = constructRegex();
+    const words = dictionary?.words.filter((word) => regex.test(word)) ?? [];
+    return words;
+  }
+
+  function applyWord(word: string) {
+    const cursorRun = getCursorRun(crossword.cells, controller);
+    const cells = getRunCells(crossword.cells, cursorRun);
+    if (cells.length !== word.length) {
+      // Should not be possible, so we don't have any additional handling for this
+      console.error('Word length does not match run length');
+      return;
+    }
+    for (let i = 0; i < cells.length; i++) {
+      setCell(cells[i]!.coordinates, { type: 'user', value: word[i]! });
+    }
+  }
+
+  function DictionarySelector() {
+    return (
+      <div className="flex flex-row">
+        <label className="mr-2">Dictionary:</label>
+
+        <select
+          value={selectedDictionary}
+          onChange={(event) => setSelectedDictionary(event.target.value)}
+          className="w-full p-1"
+        >
+          {dictionaries.map((dict) => (
+            <option key={dict.name} value={dict.name}>
+              {dict.name}
+            </option>
+          ))}
+        </select>
+        <DictionaryUploadDialog
+          onComplete={async (file: File, name: string) => {
+            const fileData = await fileIntoString(file);
+            const words = fileData.split(/\r?\n/);
+            const newDict = { name, words };
+            console.log(newDict);
+            addDictionary(newDict);
+            setSelectedDictionary(name);
+          }}
+        >
+          <button className="font-bold ml-2">+</button>
+        </DictionaryUploadDialog>
+      </div>
+    );
+  }
+
+  // TODO: Fix no reloading of search results when changing dictionary / popover closing when using key to force refresh
   return (
     <div className="flex flex-row gap-2">
       <button onClick={toggleBlocked}>{isBlocked ? 'Unblock' : 'Block'}</button>
-      <button onClick={clear} disabled={!isClearable}>
-        Clear
-      </button>
+      <button onClick={clear}>Clear</button>
+      <SearchPopover search={findWords} onSelect={applyWord} dictionarySelector={<DictionarySelector />}>
+        <button>Fill</button>
+      </SearchPopover>
     </div>
   );
 }
