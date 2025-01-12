@@ -2,8 +2,76 @@ import { useRef } from 'react';
 import useOnKeyboardInput from '~/lib/hooks/useOnKeyboardInput';
 import { useCrosswordSolverApplicationContext } from '~/state/solver';
 import CellGrid from './CellGrid';
-import { AnnotatedHint, dims, isCursorInHintRun } from '~/lib/crossword';
+import { AnnotatedHint, dims, getCursorRun, getRunCells, isCursorInHintRun } from '~/lib/crossword';
 import { cn } from '~/lib/style';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import { Coordinate } from '~/lib/controls';
+
+// TODO: Make all uses of asChild optional by making it a parameter of the components that use it
+
+/** Assumes children is asChildable */
+function SolverDropdown({ children, options }: { children: React.ReactNode; options: React.ReactNode[] }) {
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger asChild>{children}</DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content className="bg-white shadow-md w-32 p-2">
+          {options.map((opt) => (
+            <DropdownMenu.Item> {opt} </DropdownMenu.Item>
+          ))}
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  );
+}
+
+// TODO: Rename Cell -> Square
+
+function Toolbar() {
+  const { revealCell, checkCell, controller, cells } = useCrosswordSolverApplicationContext();
+
+  function applyToCell(f: (coord: Coordinate) => void) {
+    f(controller.cursor);
+  }
+
+  function applyToWord(f: (coord: Coordinate) => void) {
+    const currentRun = getCursorRun(cells, controller);
+    const runCells = getRunCells(cells, currentRun);
+    runCells.forEach(({ coordinates }) => f(coordinates));
+  }
+
+  function applyToAll(f: (coord: Coordinate) => void) {
+    const crosswordDims = dims(cells);
+    for (let row = 0; row < crosswordDims.rows; row++) {
+      for (let col = 0; col < crosswordDims.cols; col++) {
+        f({ row, col });
+      }
+    }
+  }
+
+  return (
+    <div className="flex flex-row gap-2 justify-center w-full">
+      <SolverDropdown
+        options={[
+          <div onClick={() => applyToCell(checkCell)}>Cell</div>,
+          <div onClick={() => applyToWord(checkCell)}>Word</div>,
+          <div onClick={() => applyToAll(checkCell)}>Puzzle</div>,
+        ]}
+      >
+        <button>Check</button>
+      </SolverDropdown>
+      <SolverDropdown
+        options={[
+          <div onClick={() => applyToCell(revealCell)}>Cell</div>,
+          <div onClick={() => applyToWord(revealCell)}>Word</div>,
+          <div onClick={() => applyToAll(revealCell)}>Puzzle</div>,
+        ]}
+      >
+        <button>Reveal</button>
+      </SolverDropdown>
+    </div>
+  );
+}
 
 function HintsList({ direction, mayHighlight }: { direction: 'across' | 'down'; mayHighlight: boolean }) {
   const { hints: allHints, controller, setController } = useCrosswordSolverApplicationContext();
@@ -45,7 +113,8 @@ function Solver() {
   return (
     <div className="flex flex-row justify-center gap-4 w-fit">
       {isCompleted && 'COMPLETED!'}
-      <div className="flex flex-col items-center" ref={keyboardCaptureAreaRef}>
+      <div className="flex flex-col gap-2 items-center" ref={keyboardCaptureAreaRef}>
+        <Toolbar />
         <CellGrid
           dimensions={dims(cells)}
           cells={cells}

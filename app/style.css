@@ -6,3 +6,25 @@ button {
   border: 1px solid #000;
   padding: 1px 4px;
 }
+
+.incorrect-cell:after {
+  content: "";
+  height: 2px;
+  width: 141%; /* approx sqrt(2) */
+  @apply bg-red-500;
+  position: absolute;
+  right: 0px;
+  top: 1px;
+  transform: rotate(135deg);
+  transform-origin: 0px 0px;
+  translate: 100%;
+}
+
+.corrected-cell:after {
+  content: "";
+  position: absolute;
+  @apply size-2.5;
+  @apply bg-red-500;
+  @apply top-1 right-1;
+  @apply rounded-full;
+}

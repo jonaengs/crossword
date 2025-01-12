@@ -1,8 +1,7 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Popover from '@radix-ui/react-popover';
 import { useRef, useState } from 'react';
-import { Coordinate } from '~/lib/controls';
-import { AnnotatedHint, AnyCell, Run, dims, getCursorRun, isCursorInHintRun } from '~/lib/crossword';
+import { AnnotatedHint, dims, getCursorRun, getRunCells, isCursorInHintRun } from '~/lib/crossword';
 import { fileIntoString } from '~/lib/files';
 import { splitLines, useDictionaries, useDictionary } from '~/lib/hooks/useDictionary';
 import useDictionarySearch from '~/lib/hooks/useDictionarySearch';
@@ -13,24 +12,6 @@ import CellGrid from './CellGrid';
 
 // TODO: Move Editor and Solver files somewhere else as they are not reusable without being wrapped in the correct context provider
 // TODO: Ctrl-z, Ctrl-y/Ctrl-Shift-z for undo/redo
-
-interface AnnotatedCell {
-  inner: AnyCell;
-  coordinates: Coordinate;
-}
-
-function getRunCells(cells: AnyCell[][], run: Run): AnnotatedCell[] {
-  const cellsInRun: AnnotatedCell[] = [];
-  for (let i = run.start.row; i <= run.end.row; i++) {
-    for (let j = run.start.col; j <= run.end.col; j++) {
-      cellsInRun.push({
-        inner: cells[i]![j]!,
-        coordinates: { row: i, col: j },
-      });
-    }
-  }
-  return cellsInRun;
-}
 
 function SearchResult({ words, onSelect }: { words: string[]; onSelect: (word: string) => void }) {
   return (
@@ -68,6 +49,8 @@ function SearchPopover({
     setIsOpen(false);
   };
 
+  // TODO: Make keyboard naviable and make autofocus on open
+  // Also: consider not trapping tab as it kinda kills accessibility
   return (
     <Popover.Root onOpenChange={setIsOpen} open={isOpen}>
       <Popover.Trigger asChild>{children}</Popover.Trigger>
@@ -177,6 +160,7 @@ function Toolbar() {
     }
   }
 
+  // TODO: (low prio) make clear act like nyt clear, a dropdown witht three options: incomplete (word where letters are not part of completed words), word, puzzle
   function clear() {
     const cells = getRunCells(crossword.cells, currentCursorRun);
     for (let i = 0; i < cells.length; i++) {
@@ -228,7 +212,7 @@ function Toolbar() {
       return;
     }
     for (let i = 0; i < cells.length; i++) {
-      setCell(cells[i]!.coordinates, { type: 'user', value: word[i]! });
+      setCell(cells[i]!.coordinates, { type: 'filled', value: word[i]! });
     }
   }
 
@@ -265,7 +249,7 @@ function Toolbar() {
   }
 
   return (
-    <div className="flex flex-row gap-2 my-1">
+    <div className="flex flex-row gap-2">
       <button onClick={toggleBlocked}>{isBlocked ? 'Unblock' : 'Block'}</button>
       <button onClick={clear}>Clear</button>
       <SearchPopover search={findWords} onSelect={applyWord} dictionarySelector={<DictionarySelector />}>
@@ -340,7 +324,7 @@ function Editor() {
   return (
     <div className="flex flex-row justify-center gap-4">
       {/* Crossword */}
-      <div className="flex flex-col items-center" ref={keyboardCaptureAreaRef}>
+      <div className="flex flex-col gap-2 items-center" ref={keyboardCaptureAreaRef}>
         <Toolbar />
         <CellGrid
           dimensions={dims(crossword.cells)}

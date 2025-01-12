@@ -1,6 +1,15 @@
 import { ReactNode, createContext, useContext, useState } from 'react';
 import { ControllerState, Coordinate, Direction, controllerNext, convertDirectionalCommand } from '../lib/controls';
-import { AnnotatedHints, BuilderCell, EditableCrossword, AnyCell, dims, findFirstNonblocked } from '../lib/crossword';
+import {
+  AnnotatedHints,
+  BuilderCell,
+  EditableCrossword,
+  AnyCell,
+  dims,
+  findFirstNonblocked,
+  CheckedCell,
+  RevealedCell,
+} from '../lib/crossword';
 import { AnyInput } from '../lib/input';
 
 interface CrosswordSolverState {
@@ -9,6 +18,8 @@ interface CrosswordSolverState {
   controller: ControllerState;
   handleInput: (input: AnyInput) => void;
   setController: (coords: Coordinate, direction: Direction) => void;
+  checkCell: (coords: Coordinate) => void;
+  revealCell: (coords: Coordinate) => void;
   isCompleted: boolean;
 }
 
@@ -25,7 +36,7 @@ export function CrosswordSolverApplicationProvider({
   children,
   initialCrossword: { cells: solution, hints },
 }: Readonly<{ children: ReactNode; initialCrossword: EditableCrossword }>) {
-  // TODO: use localstorage as backing for crossword. Add a clear button to complete reset state
+  // TODO: use localstorage as backing for crossword. Add a clear button to completely reset state
   const [attempt, setAttempt] = useState<AttemptCells>(initAttemptCells(solution));
   const [isCompleted, setIsCompleted] = useState(false);
   const [controller, _setController] = useState<ControllerState>({
@@ -34,10 +45,41 @@ export function CrosswordSolverApplicationProvider({
     controls: { direction: 'horizontal' },
   });
 
-  function setCell({ row, col }: Coordinate, value: BuilderCell) {
-    const netAttempt = structuredClone(attempt);
-    netAttempt[row]![col]! = value;
-    setAttempt(netAttempt);
+  function setCell({ row, col }: Coordinate, value: AnyCell) {
+    setAttempt((attempt) => {
+      const netAttempt = structuredClone(attempt);
+      netAttempt[row]![col]! = value;
+      return netAttempt;
+    });
+  }
+
+  function revealCell({ row, col }: Coordinate) {
+    const attemptCell = attempt[row]![col]!;
+    const solutionCell = solution[row]![col]!;
+    if (solutionCell.type !== 'filled') {
+      return;
+    }
+    setCell({ row, col }, {
+      type: 'revealed',
+      value: solutionCell.value,
+      prevValue: attemptCell.type === 'filled' ? attemptCell.value : undefined,
+    } as RevealedCell);
+  }
+
+  function checkCell({ row, col }: Coordinate) {
+    const attemptCell = attempt[row]![col]!;
+    if (attemptCell.type !== 'filled') {
+      return;
+    }
+    const solutionCell = solution[row]![col]!;
+    if (solutionCell.type !== 'filled') {
+      return;
+    }
+    setCell({ row, col }, {
+      type: 'checked',
+      value: attemptCell.value,
+      correct: attemptCell.value === solutionCell.value,
+    } as CheckedCell);
   }
 
   function handleInput(input: AnyInput) {
@@ -54,7 +96,7 @@ export function CrosswordSolverApplicationProvider({
       if (attempt[row]![col]!.type === 'blocked') {
         return;
       }
-      setCell({ row, col }, { type: 'user', value: input.value });
+      setCell({ row, col }, { type: 'filled', value: input.value });
       const newController = controllerNext(attempt, controller, 'next');
       if (attempt[newController.cursor.row]![newController.cursor.col]!.type === 'blocked') {
         return;
@@ -99,6 +141,8 @@ export function CrosswordSolverApplicationProvider({
         controller,
         handleInput,
         setController,
+        checkCell,
+        revealCell,
         isCompleted,
       }}
     >

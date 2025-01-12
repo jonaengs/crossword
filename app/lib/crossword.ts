@@ -1,35 +1,47 @@
 import { ControllerState, Coordinate } from './controls';
 
-export interface EmptyCellValue {
+// TODO: Look into putting types into a namespace. Will allow shorter names but stll prevent name collisions
+
+export interface EmptyCell {
   type: 'empty';
-}
-
-export interface RevealedCellValue {
-  type: 'corrected';
-  value: string;
-}
-
-export interface WrongCellValue {
-  type: 'wrong';
-  value: string;
-}
-
-export interface UserInputCellValue {
-  type: 'user';
-  value: string;
-}
-
-export interface DraftCellValue {
-  type: 'draft';
-  value: string;
 }
 
 export interface BlockedCell {
   type: 'blocked';
 }
 
-export type BuilderCell = EmptyCellValue | UserInputCellValue | BlockedCell;
-export type AnyCell = BuilderCell | RevealedCellValue | DraftCellValue | WrongCellValue;
+export interface FilledCell {
+  type: 'filled';
+  value: string;
+}
+
+export interface DraftCell {
+  type: 'draft';
+  value: string;
+}
+
+/** A square that has been revealed */
+export interface RevealedCell {
+  type: 'revealed';
+  value: string;
+  /** The value held in the cell right before the cell was revealed. May be undefined if the cell was empty */
+  prevValue: string | undefined;
+}
+
+/** A square whose value has been checked against the solution, with the outcome stored in the `correct` value */
+export interface CheckedCell {
+  type: 'checked';
+  value: string;
+  correct: boolean;
+}
+
+export type BuilderCell = EmptyCell | FilledCell | BlockedCell;
+export type AnyCell = BuilderCell | RevealedCell | DraftCell | CheckedCell;
+
+export interface AnnotatedCell {
+  inner: AnyCell;
+  coordinates: Coordinate;
+}
 
 // TODO: Allow connecting hints. For cases where it's like "see 6-across" in the 1-down. Probably a connectedHints: label[] should suffice
 
@@ -219,7 +231,7 @@ export function getHintNumberForCoordinate(hints: AnnotatedHints, { row, col }: 
   return hintDown?.index.toString() || hintAcross?.index.toString() || null;
 }
 
-export function initCrosswordCells(rows: number, cols: number): EmptyCellValue[][] {
+export function initCrosswordCells(rows: number, cols: number): EmptyCell[][] {
   return Array.from({ length: rows }, () => Array.from({ length: cols }, () => ({ type: 'empty' })));
 }
 
@@ -286,4 +298,20 @@ export function isInRun(coord: Coordinate, run: Run): boolean {
 
 export function isCursorInHintRun(hint: AnnotatedHint, cursor: Coordinate): boolean {
   return isInRun(cursor, hint.run);
+}
+
+// TODO: Add url encoding and decoding of entire crosswords. Then make it possible to share those urls and to load crosswords from them
+// A simple encoding scheme + gzip + base64 (url safe version) should be fine, if not ideal
+
+export function getRunCells(cells: AnyCell[][], run: Run): AnnotatedCell[] {
+  const cellsInRun: AnnotatedCell[] = [];
+  for (let i = run.start.row; i <= run.end.row; i++) {
+    for (let j = run.start.col; j <= run.end.col; j++) {
+      cellsInRun.push({
+        inner: cells[i]![j]!,
+        coordinates: { row: i, col: j },
+      });
+    }
+  }
+  return cellsInRun;
 }

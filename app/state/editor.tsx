@@ -51,7 +51,7 @@ export function CrosswordEditorApplicationProvider({
       if (crossword.cells[row]![col]!.type === 'blocked') {
         return;
       }
-      setCell({ row, col }, { type: 'user', value: input.value });
+      setCell({ row, col }, { type: 'filled', value: input.value });
       const newController = controllerNext(crossword.cells, controllerState, 'next');
       if (crossword.cells[newController.cursor.row]![newController.cursor.col]!.type === 'blocked') {
         return;
