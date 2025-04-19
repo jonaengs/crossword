@@ -14,6 +14,7 @@ import { Route as rootRoute } from './routes/__root'
 import { Route as NewImport } from './routes/new'
 import { Route as IndexImport } from './routes/index'
 import { Route as SolveSlugImport } from './routes/solve/$slug'
+import { Route as ShareEncodedImport } from './routes/share/$encoded'
 import { Route as EditSlugImport } from './routes/edit/$slug'
 
 // Create/Update Routes
@@ -33,6 +34,12 @@ const IndexRoute = IndexImport.update({
 const SolveSlugRoute = SolveSlugImport.update({
   id: '/solve/$slug',
   path: '/solve/$slug',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const ShareEncodedRoute = ShareEncodedImport.update({
+  id: '/share/$encoded',
+  path: '/share/$encoded',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -67,6 +74,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EditSlugImport
       parentRoute: typeof rootRoute
     }
+    '/share/$encoded': {
+      id: '/share/$encoded'
+      path: '/share/$encoded'
+      fullPath: '/share/$encoded'
+      preLoaderRoute: typeof ShareEncodedImport
+      parentRoute: typeof rootRoute
+    }
     '/solve/$slug': {
       id: '/solve/$slug'
       path: '/solve/$slug'
@@ -83,6 +97,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/new': typeof NewRoute
   '/edit/$slug': typeof EditSlugRoute
+  '/share/$encoded': typeof ShareEncodedRoute
   '/solve/$slug': typeof SolveSlugRoute
 }
 
@@ -90,6 +105,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/new': typeof NewRoute
   '/edit/$slug': typeof EditSlugRoute
+  '/share/$encoded': typeof ShareEncodedRoute
   '/solve/$slug': typeof SolveSlugRoute
 }
 
@@ -98,15 +114,22 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/new': typeof NewRoute
   '/edit/$slug': typeof EditSlugRoute
+  '/share/$encoded': typeof ShareEncodedRoute
   '/solve/$slug': typeof SolveSlugRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/new' | '/edit/$slug' | '/solve/$slug'
+  fullPaths: '/' | '/new' | '/edit/$slug' | '/share/$encoded' | '/solve/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/new' | '/edit/$slug' | '/solve/$slug'
-  id: '__root__' | '/' | '/new' | '/edit/$slug' | '/solve/$slug'
+  to: '/' | '/new' | '/edit/$slug' | '/share/$encoded' | '/solve/$slug'
+  id:
+    | '__root__'
+    | '/'
+    | '/new'
+    | '/edit/$slug'
+    | '/share/$encoded'
+    | '/solve/$slug'
   fileRoutesById: FileRoutesById
 }
 
@@ -114,6 +137,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   NewRoute: typeof NewRoute
   EditSlugRoute: typeof EditSlugRoute
+  ShareEncodedRoute: typeof ShareEncodedRoute
   SolveSlugRoute: typeof SolveSlugRoute
 }
 
@@ -121,6 +145,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   NewRoute: NewRoute,
   EditSlugRoute: EditSlugRoute,
+  ShareEncodedRoute: ShareEncodedRoute,
   SolveSlugRoute: SolveSlugRoute,
 }
 
@@ -137,6 +162,7 @@ export const routeTree = rootRoute
         "/",
         "/new",
         "/edit/$slug",
+        "/share/$encoded",
         "/solve/$slug"
       ]
     },
@@ -148,6 +174,9 @@ export const routeTree = rootRoute
     },
     "/edit/$slug": {
       "filePath": "edit/$slug.tsx"
+    },
+    "/share/$encoded": {
+      "filePath": "share/$encoded.tsx"
     },
     "/solve/$slug": {
       "filePath": "solve/$slug.tsx"

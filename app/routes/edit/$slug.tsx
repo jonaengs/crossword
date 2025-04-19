@@ -34,7 +34,7 @@ function PreviewButton({ open, onOpenChange }: { open: boolean; onOpenChange: (o
       </Dialog.Trigger>
 
       <Dialog.Portal>
-        <Dialog.Overlay className="bg-black/15 fixed inset-0" />
+        <Dialog.Overlay className="bg-black/25 fixed inset-0" />
         <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white min-h-44 p-4">
           <Dialog.Close asChild>
             <button className="float-right">Close</button>

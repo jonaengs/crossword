@@ -1,4 +1,5 @@
 import { Link, createFileRoute } from '@tanstack/react-router';
+import { ShareableLinkButton } from '~/components/ShareButton';
 import { listCrosswords } from '~/functions';
 
 export const Route = createFileRoute('/')({
@@ -14,7 +15,7 @@ function RouteComponent() {
     <div className="flex flex-col items-center">
       <Link to="/new">Create a new crossword!</Link>
       <p>or</p>
-      <ul>
+      <ul className="space-">
         {crosswords.map((slug) => (
           <li key={slug} className="flex flex-row gap-4">
             <span className="w-32 truncate font-semibold">{slug}</span>
@@ -24,6 +25,7 @@ function RouteComponent() {
             <Link to={`/edit/$slug`} params={{ slug }}>
               Edit
             </Link>
+            <ShareableLinkButton crosswordSlug={slug}>Copy Link</ShareableLinkButton>
           </li>
         ))}
       </ul>

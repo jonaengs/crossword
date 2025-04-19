@@ -111,7 +111,7 @@ function DictionaryUploadDialog({
     <Dialog.Root open={isOpen} onOpenChange={setIsOpen}>
       <Dialog.Trigger asChild>{children}</Dialog.Trigger>
       <Dialog.Portal>
-        <Dialog.Overlay className="bg-black/15 fixed inset-0" />
+        <Dialog.Overlay className="bg-black/25 fixed inset-0" />
         <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white w-xl min-h-44 p-4">
           <Dialog.Title className="text-lg">Upload a dictionary</Dialog.Title>
           <Dialog.Description className="text-sm text-gray-500">
