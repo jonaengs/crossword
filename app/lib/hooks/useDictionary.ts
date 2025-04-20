@@ -6,7 +6,7 @@ export function splitLines(contents: string): string[] {
 }
 
 export async function loadExampleDictionary() {
-  const data = (await import('~/assets/dictionary/10k.txt?raw')).default;
+  const data = (await import('~/assets/dictionaries/example/10k.txt?raw')).default;
   const words = splitLines(data);
   return words;
 }
@@ -35,6 +35,12 @@ export function useDictionaries() {
   const { value: fullDictionaries, setValue: setDictionaries } = useLocalStorage<StoredDictionary[]>(
     'dictionaries',
     [],
+    {
+      // TODO: If an error occurs, it is likely due to the browser's localstorage quota being exceeded.
+      // If so, we should tell the user that they should change their browser settings to allow for a higher quota (e.g., setting dom.storage.default_quota in firefox)
+      // (or compress their dictionaries so we don't hit the limit)
+      onError: console.error,
+    },
   );
 
   // If no dictionaries have been stored, populate with the example dictionary

@@ -15,9 +15,10 @@ import CellGrid from './CellGrid';
 
 function SearchResult({ words, onSelect }: { words: string[]; onSelect: (word: string) => void }) {
   return (
-    <ul className="flex flex-col gap-1">
-      {words?.map((word) => (
-        <li key={word} onClick={() => onSelect(word)} className="cursor-pointer hover:bg-gray-100">
+    <ul className="flex flex-col gap-1 tabular">
+      {words?.map((word, i) => (
+        // Use index as key in case of duplicate words. List elements don't contain state so this is fine.
+        <li key={i} onClick={() => onSelect(word)} className="cursor-pointer hover:bg-gray-100">
           {word}
         </li>
       ))}
@@ -89,7 +90,7 @@ function DictionaryUploadDialog({
   onComplete,
 }: {
   children: React.ReactNode;
-  onComplete: (file: File, name: string) => Promise<void>;
+  onComplete: (file: File, name: string, encoding?: string) => Promise<void>;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -100,9 +101,11 @@ function DictionaryUploadDialog({
     const form = event.currentTarget;
     const fileInput = form.elements.namedItem('file') as HTMLInputElement;
     const nameInput = form.elements.namedItem('name') as HTMLInputElement;
+    const encodingInput = form.elements.namedItem('encoding') as HTMLInputElement;
     const file = fileInput.files![0]!;
     const name = nameInput.value;
-    await onComplete(file, name);
+    const encoding = encodingInput.value || undefined;
+    await onComplete(file, name, encoding);
     setIsSubmitting(false);
     setIsOpen(false);
   }
@@ -117,13 +120,17 @@ function DictionaryUploadDialog({
           <Dialog.Description className="text-sm text-gray-500">
             A dictionary file is expected to be a text file (.txt extension) containing words separate by newlines
           </Dialog.Description>
-          <form className="flex flex-col" onSubmit={onSubmit}>
+          <form className="flex flex-col gap-1" onSubmit={onSubmit}>
             <label htmlFor="file">
               File: <input type="file" accept=".txt" name="file" required />
             </label>
 
             <label htmlFor="name">
               Name: <input type="text" name="name" required />
+            </label>
+
+            <label htmlFor="encoding">
+              Encoding: <input type="text" name="encoding" placeholder="utf-8" />
             </label>
 
             <button type="submit" disabled={isSubmitting}>
@@ -199,6 +206,7 @@ function Toolbar() {
         currentCursorRun.end.row - currentCursorRun.start.row,
         currentCursorRun.end.col - currentCursorRun.start.col,
       ) + 1;
+    console.log(currentCursorRun, runLength);
     const regex = constructFilter();
     const words = dictionary.ngrams[runLength]?.filter((word) => regex.test(word)) ?? [];
     return words;
@@ -233,9 +241,9 @@ function Toolbar() {
           ))}
         </select>
         <DictionaryUploadDialog
-          onComplete={async (file: File, name: string) => {
-            const fileData = await fileIntoString(file);
-            const words = splitLines(fileData);
+          onComplete={async (file: File, name: string, encoding?: string) => {
+            const fileData = await fileIntoString(file, encoding);
+            const words = splitLines(fileData).map((w) => w.trim());
             const newDict = { name, words };
             console.log(newDict);
             addDictionary(newDict);

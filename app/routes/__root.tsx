@@ -5,7 +5,7 @@ import '~/style.css';
 
 export const Route = createRootRoute({
   head: () => ({
-    meta: [{ charset: 'utf-8' }, { title: 'My Crossword App' }],
+    meta: [{ charSet: 'utf-8' }, { title: 'My Crossword App' }],
   }),
   component: RootComponent,
 });

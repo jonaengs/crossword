@@ -16,8 +16,8 @@ function SolverDropdown({ children, options }: { children: React.ReactNode; opti
       <DropdownMenu.Trigger asChild>{children}</DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Content className="bg-white shadow-md w-32 p-2">
-          {options.map((opt) => (
-            <DropdownMenu.Item> {opt} </DropdownMenu.Item>
+          {options.map((opt, i) => (
+            <DropdownMenu.Item key={i}> {opt} </DropdownMenu.Item>
           ))}
         </DropdownMenu.Content>
       </DropdownMenu.Portal>

@@ -1,4 +1,4 @@
-export function fileIntoString(file: File): Promise<string> {
+export function fileIntoString(file: File, encoding?: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
@@ -6,6 +6,6 @@ export function fileIntoString(file: File): Promise<string> {
     };
     reader.onerror = reject;
     // TODO: Deal with encodings. For example, windows users will likely upload utf-16. Maybe allow user to specify encooding in upload dialog?
-    reader.readAsText(file, 'utf-8');
+    reader.readAsText(file, encoding);
   });
 }
